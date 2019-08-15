@@ -166,10 +166,18 @@
                                              (let [css-shit (.-sheet (r/dom-node this))
                                                    css-var-shit (.. js/document -documentElement)]
 
-                                               ;; add all known styles
+                                               ;; add all known styles and vars
+                                               (doall
+                                                 (->> (vals @css-registry)
+                                                   (map :css)
+                                                   (map #(.insertRule css-shit %))))
+                                               (doall
+                                                 (->> @css-var-registry
+                                                   (map #(.setProperty (.-style css-var-shit) (key %) (val %)))))
+
+                                               ;; now sync! pending updates
                                                (sync-css! css-shit)
                                                (sync-css-vars! css-var-shit)
-
 
                                                ;; register css var sync
                                                (reset! syncing-vars-next-tick false)
