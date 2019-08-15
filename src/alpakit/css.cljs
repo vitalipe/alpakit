@@ -58,16 +58,15 @@
 
 
 
-;; watch this for changes and update the dom. this should reflect the dom state
-(def registry (atom {}))
-
-;; current css var values
+;; loaded styles and css vars, this should reflect the dom state
+(def css-registry (atom {}))
 (def css-var-registry (atom {}))
 
-;; upcoming changes to css vars
-(def css-var-updates (atom {}))
+;; upcoming changes to be diffed
+(def pending-css-updates     (atom {}))
+(def pending-css-var-updates (atom {}))
 
-;; cache computed css
+;; cache computed css because it's expensive
 (def style-cache (atom (cache/lru-cache-factory {} :threshold 10000)))
 
 
@@ -88,19 +87,22 @@
 (defn register-css! [items]
   (->> items
     (pivot-by :class-name)
-    (swap! registry merge))
+    (swap! pending-css-updates merge))
   items)
 
 
 ;;; API
 (defn reset-css! []
-  (reset! registry {}))
+  (reset! css-registry {})
+  (reset! css-var-registry {})
+  (reset! pending-css-updates {})
+  (reset! pending-css-var-updates {}))
 
 
 (defn css! [styles]
   "register css and return class names"
   (let [[css-vars nomalized-styles] (extract-css-vars styles)]
-    (swap! css-var-updates merge css-vars)
+    (swap! pending-css-var-updates merge css-vars)
     (->> nomalized-styles
       (rules->pairs)
       (create-css-through-cache!)
@@ -112,50 +114,67 @@
 (defn style-sheet []
   "style container element"
   (let [my-id (random-uuid)
-        css-var-shit (.. js/document -documentElement)
-        sync-styles! (fn [prv next sheet]
-                      (cond
+
+        syncing-css-next-tick (atom false)
+        sync-css! (fn [shit]
+                    (let [next    @pending-css-updates
+                          current @css-registry
+                          diff    (reduce (fn [diff [k v]]
+                                            (if-not (contains? current k)
+                                             (assoc diff k v)
+                                             diff))
+                                     {} next)]
+
+                      (if (empty? next)
                         ;; at this point we don't really care about removing styles, only handle `reset!`
-                        (empty? next) (while (pos? (.. sheet -cssRules -length)) (.deleteRule sheet 0))
-                        :otherwise    (let [new-rules (select-keys
-                                                        next
-                                                        (set/difference
-                                                          (into #{} (keys next))
-                                                          (into #{} (keys prv))))]
-                                          (doall
-                                            (->> (vals new-rules)
-                                              (map :css)
-                                              (map #(.insertRule sheet %)))))))
+                        (when (empty? current)
+                          (while (pos? (.. shit -cssRules -length)) (.deleteRule shit 0)))
+                        ;; when not empty? next
+                        (do
+                          (reset! pending-css-updates {})
+                          (swap! css-registry merge diff)
+
+                          (doall
+                            (->> (vals diff)
+                              (map :css)
+                              (map #(.insertRule shit %))))))))
+
 
         syncing-vars-next-tick (atom false)
         sync-css-vars! (fn [shit]
-                         (let [next @css-var-updates
+                         (let [next @pending-css-var-updates
                                current @css-var-registry
                                diff (reduce (fn [diff [k v]]
                                               (if (not= v (current k))
                                                (assoc diff k v)
                                                diff))
                                        {} next)]
+                           (when-not (empty? next)
+                             (swap! css-var-registry merge diff)
+                             (reset! pending-css-var-updates {})
 
-                           (swap! css-var-registry merge diff)
-                           (reset! css-var-updates {})
-                           (doall (map #(.setProperty (.-style shit) (key %) (val %)) diff))))]
+                             (doall
+                               (map #(.setProperty (.-style shit) (key %) (val %)) diff)))))]
+
 
     (r/create-class { :render (fn [] [:style.alpakit-css])
-                      :componentWillUnmount #(remove-watch registry my-id)
+                      :componentWillUnmount #(do
+                                               (remove-watch pending-css-var-updates my-id)
+                                               (remove-watch pending-css-var-updates my-id))
+
                       :component-did-mount (fn [this]
-                                             (let [css-shit (.-sheet (r/dom-node this))]
+                                             (let [css-shit (.-sheet (r/dom-node this))
+                                                   css-var-shit (.. js/document -documentElement)]
 
                                                ;; add all known styles
-                                               (doall
-                                                 (->> (vals @registry)
-                                                   (map :css)
-                                                   (map #(.insertRule css-shit %))))
+                                               (sync-css! css-shit)
+                                               (sync-css-vars! css-var-shit)
+
 
                                                ;; register css var sync
                                                (reset! syncing-vars-next-tick false)
                                                (add-watch
-                                                 css-var-updates
+                                                 pending-css-var-updates
                                                  my-id
                                                  (fn [_ _ _ _]
                                                    (when-not @syncing-vars-next-tick
@@ -164,9 +183,14 @@
                                                                      (reset! syncing-vars-next-tick false)
                                                                      (sync-css-vars! css-var-shit))))))
 
-                                               ;; register sync
+                                               ;; register css sync
+                                               (reset! syncing-css-next-tick false)
                                                (add-watch
-                                                 registry
+                                                 pending-css-updates
                                                  my-id
-                                                 (fn [_ _ prv next]
-                                                   (r/next-tick #(sync-styles! prv next css-shit))))))})))
+                                                 (fn [_ _ _ _]
+                                                   (when-not @syncing-css-next-tick
+                                                     (reset! syncing-css-next-tick true)
+                                                     (r/next-tick #(do
+                                                                     (reset! syncing-css-next-tick false)
+                                                                     (sync-css! css-shit))))))))})))
