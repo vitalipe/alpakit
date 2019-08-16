@@ -2,6 +2,7 @@
   (:require
     [clojure.string :refer [join]]
     [garden.selectors :as selectors]
+    [garden.units     :as units]
 
     [alpakit.util :refer [prop-get map-kv]]))
 
@@ -10,10 +11,16 @@
 (defn- map-when [test effect coll]
   (map #(if (test %) (effect %) %)  coll))
 
+(defn- css-unit-or-ref? [thing]
+  (or
+    (satisfies? IDeref thing)
+    (string? thing)
+    (units/unit? thing)))
+
 
 (defn areas->css [areas]
   "
-     [20%     1fr    2fr    100px
+     [20%     1fr    2fr    (px 100)
       [:A      :A     :A     :A]  10%
       [:B      :C     :C     nil] 1fr
       [:B      :C     :C     nil] 200px]
@@ -24,7 +31,7 @@
                            [B C C .]
                            [B C C .]]
      :grid-template-rows    10% 1fr 200px
-     :grid-template-columns 20%   1fr  2fr 100px
+     :grid-template-columns (20% 1fr  2fr #garden.types.CSSUnit{:unit :px, :magnitude 100})
   "
   {:grid-template-areas (->> areas
                           (filter vector?)
@@ -35,19 +42,24 @@
                           (join " "))
 
    :grid-template-columns (->> areas
-                            (take-while string?)
-                            (join " "))
+                            (take-while css-unit-or-ref?)
+                            (interpose " ")
+                            (into '())
+                            (reverse))
+
    :grid-template-rows (->> areas
-                            (drop-while string?)
-                            (drop 1)
-                            (take-nth 2)
-                            (join " "))})
+                         (drop-while css-unit-or-ref?)
+                         (drop 1)
+                         (take-nth 2)
+                         (interpose " ")
+                         (into '())
+                         (reverse))})
 
 
 (defn rows+cols->css [rows cols]
   (merge {}
-    (when-not (empty? cols) {:grid-template-columns (join " " cols)})
-    (when-not (empty? rows) {:grid-template-rows    (join " " rows)})))
+    (when-not (empty? cols) {:grid-template-columns (into '() cols)})
+    (when-not (empty? rows) {:grid-template-rows    (into '() rows)})))
 
 
 (defn gap->css [gap]
