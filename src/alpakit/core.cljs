@@ -14,30 +14,39 @@
 (defwidget surface
   "a building block for more complex dom based widgets with layout support"
 
-  :props {-attr       {:default {}                :spec props/html-attr-map}
-          -css        {:default {}                :spec props/css-style-map}
+  :props {-attr       {:default {}}
 
-          type        {:default :div              :spec keyword?}
-          style       {:default {}                :spec map?}
-          layout      {:default (layout/->DefaultLayout) :spec (partial satisfies? LayoutStrategy)}}
+          e           {:default :div}
+          css         {:default {}}
+          style       {:default {}}
 
-  (let [style-props    {:style -css
+          layout      {:default (layout/->DefaultLayout)}
+          transform   {:default nil}}
+
+  (let [transform (or transform (:transform css) {})
+        style-props    {:style style
                         :class (->> children
                                  (layout/generate-layout-styles layout)
-                                 (merge style)
+                                 (merge css transform)
                                  (css/css!))}]
-    (into [type (merge  style-props -attr)] children)))
+    (into [e (merge  style-props -attr)] children)))
 
 
 (defwidget element
   "a building block for dom based widgets"
 
-  :props {-attr       {:default {}                :spec props/html-attr-map}
-          -css        {:default {}                :spec props/css-style-map}
+  :props {-attr       {:default {}}
 
-          type        {:default :div              :spec keyword?}
-          style       {:default {}                :spec map?}}
+          e           {:default :div}
+          css         {:default {}}
+          style       {:default {}}
+
+          transform   {:default nil}}
 
 
-    (let [props (merge {:style -css :class (css/css! style)} -attr)]
-      (into [type props] children)))
+    (let [transform (or transform (:transform css) {})
+          props (merge {:style style
+                        :class (css/css! (merge css transform))}
+                      -attr)]
+
+      (into [e props] children)))
