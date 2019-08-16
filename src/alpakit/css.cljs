@@ -1,12 +1,23 @@
 
 (ns alpakit.css
-  "a simple clj implementation of styled components."
+  " a cljs implementation of styled components with garden.
+
+
+
+  ISSUES:
+    - only 1 style-sheet element per app is supported :(
+       I coupled the diff logic for better performance.. I need to move it outside the component.
+    - no style or css-var removal
+       I'm not sure if we actually need this..
+  "
   (:require
     [clojure.set    :as set]
     [clojure.string :as string]
 
     [cljs.cache :as cache]
     [garden.core :refer [css]]
+    [garden.compiler :refer [render-css]]
+
     [reagent.core :as r]
     [alpakit.util :refer [pivot-by]]))
 
@@ -16,20 +27,89 @@
   (.toString (hash thing) 36)) ;; 36 = [a-z] + [0-10]
 
 
-(defn extract-css-vars [styles]
-  "extracts atoms and replaces them with a css var in the form --alpakit-var-{{(hashable->css-str da-atom)}}
+(defn transform->css [transform]
+  "render css transform based on type:
+      string? - no changes
+      list?   - no changes
+      vector? - treat as a 4x4 homogeneous matrix (matrix3d)
+      map?    - each key is converted to a css transform function,
+                and applied in order of [translate, scale, rotate, skew]
+  "
+  (let [aliases {:rotate-x    "rotateX"
+                 :rotate-y    "rotateY"
+                 :rotate-z    "rotateZ"
+                 :rotate-3d   "rotate3d"
+
+                 :scale-3d    "scale3d"
+                 :scale-x     "scaleX"
+                 :scale-y     "scaleY"
+                 :scale-z     "scaleZ"
+
+                 :skew-x       "skewX"
+                 :skew-y       "skewY"
+
+                 :translate-x  "translateX"
+                 :translate-y  "translateY"
+                 :translate-z  "translateX"
+                 :translate-3d "translate3d"}
+
+        transform-order {"translate"   1
+                         "translateX"  1
+                         "translateY"  1
+                         "translate3d" 1
+
+                         "scale"   2
+                         "scaleX"  2
+                         "scaleY"  2
+                         "scaleZ"  2
+                         "scale3d" 2
+
+                         "rotate"    3
+                         "rotateX"   3
+                         "rotateY"   3
+                         "rotateZ"   3
+                         "rotate3d"  3
+
+                         "skew"      4
+                         "skewX"     4
+                         "skewY"     4}]
+
+       (cond
+         (vector? transform)   (list "matrix3d(" (into [] (flatten transform) ")"))
+         (map?    transform)   (->> transform
+                                   (map (fn [[k v]] [(or (aliases k) (name k)) v]))
+                                   (sort-by (comp transform-order first))
+                                   (mapcat (fn [[k v]] [k "(" v ") "]))
+                                   (reverse)
+                                   (into '()))
+         :otherwise            transform)))
+
+
+(defn apply-css-props-middleware [styles middleware]
+  (loop [styles styles [[prop f] & middleware] middleware]
+    (cond
+        (nil? prop)              styles
+        (contains? styles prop)  (recur (update styles prop f) middleware)
+        :otherwise               (recur styles middleware))))
+
+
+(defn extract-css-vars-and-normalize [styles]
+  "-> extract atoms and replaces them with a css var in the form --alpakit-var-{{(hashable->css-str da-atom)}}
+   -> render lists as without commas (useful for gird-row-templates, transform-origin, transform functions etc..)
+
    returns a vector with the replaced var map and the normalized styles
   "
   (let [css-vars   (atom {})
         normalized (->> styles
                      (clojure.walk/postwalk
                        (fn [form]
-                         (if (satisfies? IDeref form)
-                           (let [id  (str "--alpakit-css-var-" (hashable->css-str form))]
-                             (swap! css-vars assoc id (deref form))
-                             (str "var(" id ")"))
-                          ;; otherwise don't fuck with it
-                          form))))]
+                         (cond
+                          (list? form)                 (string/join "" (map render-css form))
+                          (satisfies? IDeref form)     (let [id  (str "--alpakit-css-var-" (hashable->css-str form))]
+                                                         (swap! css-vars assoc id (deref form))
+                                                         (str "var(" id ")"))
+
+                          :otherwise-dont-fuck-with-it form))))]
 
        [@css-vars normalized]))
 
@@ -52,7 +132,7 @@
 
 (defn- ->style [selector rules]
   (let [class-name (->class-name [selector rules])]
-    {:css          (css [(str "." class-name) [selector rules]])
+    {:css          (css {:pretty-print? false} [(str "." class-name) [selector rules]])
      :style        [selector rules]
      :class-name   class-name}))
 
@@ -101,7 +181,9 @@
 
 (defn css! [styles]
   "register css and return class names"
-  (let [[css-vars nomalized-styles] (extract-css-vars styles)]
+  (let [[css-vars nomalized-styles] (-> styles
+                                      (apply-css-props-middleware {:transform transform->css})
+                                      (extract-css-vars-and-normalize))]
     (swap! pending-css-var-updates merge css-vars)
     (->> nomalized-styles
       (rules->pairs)
