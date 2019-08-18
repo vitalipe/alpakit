@@ -9,6 +9,91 @@
     [alpakit.animation :refer [spring+control] :as animation]))
 
 
+(defcard-rg springy-menu
+  (let [[s cfg]   (spring+control :from 0 :to 0 :stiffness 0.8 :damping 1 :mass 10)]
+    (fn []
+      [surface :layout (layout/h-box :justify :space-around)
+               :style {:height "200px"}
+       [:div.card {:style {:width "50px";
+                           :height "50px";
+                           :position "relative"
+                           :cursor   "pointer"}
+
+                   :on-click #(if (zero? (:to @cfg))
+                                (swap! cfg assoc :to 1 :damping 1)
+                                (swap! cfg assoc :to 0 :damping 4))}
+
+
+        [:div.back {:style {:background-color "lightblue"
+                            :width  "100%"
+                            :height "100%"
+                            :position "absolute"
+                            :top 0
+                            :left 0
+                            :z-index 1
+                            :transform (str "translate(" (* -100 @s) "px, " (* 100 @s) "px)"
+                                              "rotateZ(" (* 30 @s) "deg)")}}]
+
+        [:div.back {:style {:background-color "lightblue"
+                                :width  "100%"
+                                :height "100%"
+                                :position "absolute"
+                                :top 0
+                                :left 0
+                                :z-index 1
+                                :transform (str "translate(0px, " (* 100 @s) "px)"
+                                                "rotateZ(" (* 50 @s) "deg)")}}]
+
+        [:div.back {:style {:background-color "lightblue"
+                                :width  "100%"
+                                :height "100%"
+                                :position "absolute"
+                                :top 0
+                                :left 0
+                                :z-index 1
+                            :transform (str "translate(" (* 100 @s) "px, " (* 100 @s) "px)"
+                                            "rotateZ(" (* 70 @s) "deg)")}}]
+
+        [:div.front {:style {:background-color "lightgreen"
+                             :width "100%"
+                             :height "100%"
+                             :position "relative"
+                             :top 0
+                             :left 0
+                             :z-index 2
+                             :transform (str "rotateZ(" (* -20 @s) "deg)")}}]]])))
+
+
+(defcard-rg springy-double-box
+  (let [[s cfg]   (spring+control :from 0 :to 0 :stiffness 2 :damping 1.5 :mass 100)]
+    (fn []
+      [surface :layout (layout/h-box :justify :space-around)
+       [:div.card {:style {:width "290px";
+                           :height "250px";
+                           :position "relative"}
+
+                   :on-mouse-enter #(reset! s 10)
+                   :on-mouse-leave #(reset! s 0)}
+
+        [:div.back {:style {:background-color "lightblue"
+                            :width  "100%"
+                            :height "100%"
+                            :position "absolute"
+                            :top 0
+                            :left 0
+                            :z-index 1
+                            :transform (str "translate(" (* 10 @s) "px, " (* -10 @s) "px)" "rotateZ(" (.floor js/Math @s) "deg)")}}]
+
+        [:div.front {:style {:background-color "lightgreen"
+                             :width "100%"
+                             :height "100%"
+                             :position "relative"
+                             :top 0
+                             :left 0
+                             :z-index 2
+                             :transform (str "rotateZ(" (- (.floor js/Math @s)) "deg)")}}]]])))
+
+
 
 
 (defcard-rg springy-flipcard
