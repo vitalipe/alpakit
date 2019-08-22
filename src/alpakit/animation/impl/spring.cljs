@@ -1,11 +1,12 @@
-(ns alpakit.animation
+(ns alpakit.animation.impl.spring
   (:require
    [reagent.core :as r]
-   [reagent.ratom :refer [IReactiveAtom]]))
+   [alpakit.animation.impl.transitionable :refer [->Transitionable]]))
 
 
 ;; most of the spring stuff was taken from:
 ;; https://github.com/timothypratley/reanimated
+
 
 (defn- evaluate
   "This is where the spring physics formula is applied."
@@ -32,57 +33,19 @@
 
 
 
-;; AnimTracker takes 2 cursors, one for deref and the other for swap!/reset!
-;; It allows us to proxy swaps/resets on the animation directly to the control atom
-(deftype AnimTracker [anim-cursor
-                      control-cursor]
-  IAtom
-  IReactiveAtom
 
-  IEquiv
-  (-equiv [_ other]
-    (and (instance? AnimTracker other)
-         (-equiv anim-cursor (.-anim-cursor other))
-         (-equiv control-cursor (.-control-cursor other))))
-
-  IDeref
-  (-deref [this]
-    (-deref anim-cursor))
-
-  IReset
-  (-reset! [this new-value]
-    (-reset! control-cursor new-value))
-
-  ISwap
-  (-swap! [_ f]          (-swap! control-cursor f))
-  (-swap! [_ f x]        (-swap! control-cursor f x))
-  (-swap! [_ f x y]      (-swap! control-cursor f x y))
-  (-swap! [_ f x y more] (-swap! control-cursor f x y more))
-
-  IPrintWithWriter
-  (-pr-writer [_ w opts] (-pr-writer anim-cursor w opts))
-
-  IWatchable
-  (-notify-watches [_ old new] (-notify-watches anim-cursor old new))
-  (-add-watch      [_ key f]   (-add-watch anim-cursor key f))
-  (-remove-watch   [_ key]     (-remove-watch anim-cursor key))
-
-  IHash
-  (-hash [_] (hash [anim-cursor control-cursor])))
-
-
-(defn spring+control [& {:keys [to
-                                mass
-                                stiffness
-                                damping
-                                initial-velocity
-                                initial-value]
-                         :or {to        0
-                              mass      10.0
-                              stiffness 1.0
-                              damping   1.0
-                              initial-velocity  0.0
-                              initial-value     0}}]
+(defn spring [& {:keys [to
+                        mass
+                        stiffness
+                        damping
+                        initial-velocity
+                        initial-value]
+                 :or {to        0
+                      mass      10.0
+                      stiffness 1.0
+                      damping   1.0
+                      initial-velocity  0.0
+                      initial-value     0}}]
 
   (let [control (r/atom {:to        to
                          :mass      mass
@@ -119,11 +82,8 @@
                           (r/next-tick #(reset! internal-anim-state {:t t2 :x x :v v}))
                           x))))]
 
-    [(->AnimTracker
+    (->Transitionable
        (r/cursor #(next-step!) [])
-       x2)
-     control]))
-
-
-(defn spring [ & args]
-  (first (apply spring+control args)))
+       x2
+       control
+       (hash [internal-anim-state control]))))
