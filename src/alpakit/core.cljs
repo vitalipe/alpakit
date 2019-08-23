@@ -27,7 +27,7 @@
         style-props    {:style style
                         :class (->> children
                                  (layout/generate-layout-styles layout)
-                                 (merge css transform)
+                                 (merge css (if (nil? transform) {} {:transform transform}))
                                  (css/css!))}]
     (into [e (merge  style-props -attr)] children)))
 
@@ -46,7 +46,8 @@
 
     (let [transform (or transform (:transform css) {})
           props (merge {:style style
-                        :class (css/css! (merge css transform))}
+                        :class (css/css! (merge css (if (nil? transform) {} {:transform transform})))}
+
                       -attr)]
 
       (into [e props] children)))
