@@ -6,7 +6,7 @@
     [alpakit.css :refer [style-sheet]]
 
     ;; cards
-    [cards.animation]
+    [cards.animation.spring]
     [cards.layout.grid]))
 
 (enable-console-print!)
