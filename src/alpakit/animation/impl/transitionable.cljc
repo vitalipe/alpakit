@@ -9,6 +9,7 @@
     (deftype Transitionable [anim-cursor    ;; a cursor into control, used for deref
                              control-cursor ;; a cursor into control used for swap!/reset!
                              control        ;; stores all the control info
+                             ^:mutable meta
                              hash-token]
 
       IAtom
@@ -42,4 +43,13 @@
       (-remove-watch   [_ key]     (-remove-watch anim-cursor key))
 
       IHash
-      (-hash [_] hash-token)))
+      (-hash [_] hash-token)
+
+      IWithMeta
+       (-with-meta [this new-meta]
+         (do
+           (set! meta new-meta)
+           this))
+
+      IMeta
+       (-meta [this] (.-meta this))))

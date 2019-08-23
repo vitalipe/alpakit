@@ -86,4 +86,5 @@
        (r/cursor #(next-step!) [])
        x2
        control
+       {}
        (hash [internal-anim-state control]))))
