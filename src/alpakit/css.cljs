@@ -85,6 +85,13 @@
          :otherwise            transform)))
 
 
+
+(defn transform->css-str [t]
+  (->> (transform->css t)
+    (map #(if (satisfies? IDeref %) (deref %) %))
+    (string/join "")))
+
+
 (defn apply-css-props-middleware [styles middleware]
   (loop [styles styles [[prop f] & middleware] middleware]
     (cond

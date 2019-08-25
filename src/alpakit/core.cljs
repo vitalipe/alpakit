@@ -6,9 +6,10 @@
     [reagent.core :as r]
 
     [alpakit.widget :refer-macros [defwidget]]
-    [alpakit.css    :as css]
+    [alpakit.css    :as css :refer [transform->css-str]]
     [alpakit.layout :as layout]
     [alpakit.props :as props]))
+
 
 
 (defwidget surface
@@ -24,11 +25,14 @@
           transform   {:default nil}}
 
   (let [transform (or transform (:transform css) {})
-        style-props    {:style style
+        style-props    {:style (-> style
+                                 (merge {:transform (transform->css-str transform)}))
+
                         :class (->> children
                                  (layout/generate-layout-styles layout)
-                                 (merge css (if (nil? transform) {} {:transform transform}))
+                                 (merge css)
                                  (css/css!))}]
+
     (into [e (merge  style-props -attr)] children)))
 
 
@@ -45,8 +49,9 @@
 
 
     (let [transform (or transform (:transform css) {})
-          props (merge {:style style
-                        :class (css/css! (merge css (if (nil? transform) {} {:transform transform})))}
+          props (merge {:style (-> style
+                                 (merge {:transform (transform->css-str transform)}))
+                        :class (css/css! css)}
 
                       -attr)]
 
