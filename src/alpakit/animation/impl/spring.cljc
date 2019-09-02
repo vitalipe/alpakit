@@ -7,6 +7,15 @@
 ;; most of the spring stuff was taken from:
 ;; https://github.com/timothypratley/reanimated
 
+(defn- abs [n]
+  #?(:clj  (.abs Math n)
+     :cljs (.abs js/Math n)))
+
+(defn- now []
+  #?(:clj (System/currentTimeMillis)
+     :cljs (.now js/Date)))
+
+
 
 (defn- evaluate
   "This is where the spring physics formula is applied."
@@ -55,7 +64,7 @@
          x2                  (r/cursor control [:to])
          last                (atom initial-value)
          x2prev              (atom to)
-         internal-anim-state (r/atom {:t (.now js/Date)
+         internal-anim-state (r/atom {:t (now)
                                       :x initial-value
                                       :v initial-velocity})
         next-step! (fn []
@@ -65,9 +74,9 @@
 
                     (let [{:keys [mass stiffness damping]} @control
                           {:keys [x v t]} @internal-anim-state
-                          t2 (.now js/Date)
+                          t2 (now)
                           dt (min 1 (/ (- t2 t) 10.0))
-                          threshold (/ (.abs js/Math (- @last @x2)) 100.0)]
+                          threshold (/ (abs (- @last @x2)) 100.0)]
 
                       ;; some libs allow the user to set threshold
                       ;; I don't think it's useful, but we can change this later...
