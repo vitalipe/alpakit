@@ -31,7 +31,14 @@
 
 
 (defcard-rg springy-menu
-  (let [[s cfg] (spring+control :from 0 :to 0 :stiffness 0.8 :damping 1 :mass 10)]
+  (let [[s cfg] (spring+control :from 0 :to 0 :stiffness 0.8 :damping 1 :mass 10)
+        s*100px  (+> s (map (partial *  100))  (map #(str % "px")))
+        s*-100px (+> s (map (partial *  -100)) (map #(str % "px")))
+        s*30deg  (+> s (map (partial *   30)) (map #(str % "deg")))
+        s*90-90deg  (+> s
+                      (map (partial * 90))
+                      (map (partial - 90))
+                      (map #(str % "deg")))]
     (fn []
       [surface :layout (layout/h-box :justify :space-around)
                :style {:height "200px"}
@@ -56,13 +63,11 @@
                :top 0
                :left 0
                :z-index 1
-               :text-align "center"
-               :transform {:translate-x (+> s (map (partial * -100)) (map #(str % "px")))
-                           :translate-y (+> s (map (partial *  100)) (map #(str % "px")))
-                           :rotate-z    (+> s
-                                          (map (partial *   90))
-                                          (map (partial - 90))
-                                          (map #(str % "deg")))}}
+               :text-align "center"}
+
+         :transform {:translate-x s*-100px
+                     :translate-y s*100px
+                     :rotate-z    s*90-90deg}
             "C"]
 
         [surface :layout (layout/v-box :justify :space-around)
@@ -73,13 +78,9 @@
                        :top 0
                        :left 0
                        :z-index 1
-                       :text-align "center"
-                       :transform  {:translate-y (+> s (map (partial *  100)) (map #(str % "px")))
-                                    :rotate-z    (+> s
-                                                   (map (partial *   90))
-                                                   (map (partial - 90))
-                                                   (map #(str % "deg")))}}
-
+                       :text-align "center"}
+                 :transform  {:translate-y s*100px
+                              :rotate-z    s*90-90deg}
               "B"]
 
         [surface :layout (layout/v-box :justify :space-around)
@@ -90,12 +91,10 @@
                        :top 0
                        :left 0
                        :z-index 1
-                       :text-align "center"
-                       :transform  {:translate-x (+> s (map (partial *  100)) (map #(str % "px")))
-                                    :translate-y (+> s (map (partial *  100)) (map #(str % "px")))
-                                    :rotate-z    (+> s (map (partial *   90))
-                                                       (map (partial - 90))
-                                                       (map #(str % "deg")))}}
+                       :text-align "center"}
+                 :transform  {:translate-x  s*100px
+                              :translate-y s*100px
+                              :rotate-z    s*90-90deg}
 
               "A"]
 
@@ -107,23 +106,20 @@
                        :top 0
                        :left 0
                        :text-align "center"
-                       :z-index 2
-                       :transform {:rotate-z (+> s (map (partial *   30)) (map #(str % "deg")))}}
+                       :z-index 2}
+                 :transform {:rotate-z s*30deg}
 
-            [element :css {:opacity (- 1 (:to @cfg))
-                           :transition-property "opacity"
-                           :transition-duration "100ms"
-                           :position "relative"}
+            [element :style {:opacity (- 1 (:to @cfg))
+                             :transition-property "opacity"
+                             :transition-duration "100ms"
+                             :position "relative"}
              "OPEN"]
 
-            [element :css {:opacity (:to @cfg)
-                           :transition-property "opacity"
-                           :transition-duration "100ms"
-                           :position "absolute"}
+            [element :style {:opacity (:to @cfg)
+                             :transition-property "opacity"
+                             :transition-duration "100ms"
+                             :position "absolute"}
              "CLOSE"]]]])))
-
-
-             ;(if (zero? (:to @cfg))  "CLOSE")]]]])))
 
 
 (defcard-rg springy-double-box
@@ -143,10 +139,10 @@
                        :position "absolute"
                        :top 0
                        :left 0
-                       :z-index 1
-                       :transform {:translate-x (+> s (map (partial * 10))  (map #(str % "px")))
-                                   :translate-y (+> s (map (partial * -10)) (map #(str % "px")))
-                                   :rotate-z    (+> s (map #(str % "deg")))}}]
+                       :z-index 1}
+                 :transform {:translate-x (str (* 10 @s) "px")
+                             :translate-y (str (* -10 @s) "px")
+                             :rotate-z    (str @s "deg")}]
 
         [surface :css {:background-color "lightgreen"
                        :width "100%"
@@ -154,8 +150,8 @@
                        :position "relative"
                        :top 0
                        :left 0
-                       :z-index 2
-                       :transform  {:rotate-z (+> s (map (partial * -1)) (map #(str % "deg")))}}]]])))
+                       :z-index 2}
+                 :transform  {:rotate-z (str (* -1 @s) "deg")}]]])))
 
 
 
@@ -174,8 +170,8 @@
         [surface :css {:position "relative"
                        :transform-style "preserve-3d"
                        :width "300px"
-                       :height "300px"
-                       :transform {:rotate-y (+> s (map #(str % "deg")))}}
+                       :height "300px"}
+                 :transform {:rotate-y (str @s "deg")}
 
           [element :css {:background-color "lightgreen"
                          :width "100%"
