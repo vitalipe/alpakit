@@ -46,10 +46,10 @@
       (-hash [_] hash-token)
 
       IWithMeta
-       (-with-meta [this new-meta]
-         (do
-           (set! meta new-meta)
-           this))
+      (-with-meta [this new-meta]
+        (do
+          (set! meta new-meta)
+          this))
 
       IMeta
-       (-meta [this] (.-meta this))))
+      (-meta [this] (.-meta this))))
