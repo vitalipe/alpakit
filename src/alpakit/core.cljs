@@ -8,6 +8,8 @@
     [alpakit.widget :refer-macros [defwidget]]
     [alpakit.css    :as css :refer [transform->css-str]]
     [alpakit.layout :as layout]
+    [alpakit.layout.protocol :refer [generate-layout-styles]]
+
     [alpakit.props :as props]))
 
 
@@ -21,7 +23,7 @@
           css         {:default {}}
           style       {:default {}}
 
-          layout      {:default (layout/->DefaultLayout)}
+          layout      {:default layout/box-layout}
           transform   {:default nil}}
 
   (let [transform (or transform (:transform css) {})
@@ -29,7 +31,7 @@
                                  (merge {:transform (transform->css-str transform)}))
 
                         :class (->> children
-                                 (layout/generate-layout-styles layout)
+                                 (generate-layout-styles layout)
                                  (merge css)
                                  (css/css!))}]
 

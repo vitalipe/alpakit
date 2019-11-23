@@ -1,10 +1,11 @@
-(ns alpakit.layout
+(ns alpakit.layout.impl.grid
   (:require
     [clojure.string :refer [join]]
     [garden.selectors :as selectors]
     [garden.units     :as units]
 
-    [alpakit.util :refer [prop-get map-kv]]))
+    [alpakit.util :refer [prop-get map-kv]]
+    [alpakit.layout.protocol :refer [LayoutStrategy]]))
 
 
 ;; util
@@ -99,40 +100,6 @@
 
 
 
-;; layouts
-(defprotocol LayoutStrategy
-  (generate-layout-styles  [this children]))
-
-
-(defrecord DefaultLayout []
-  LayoutStrategy
-  (generate-layout-styles  [_ _] {}))
-
-
-(defrecord FlexBoxLayout [justify
-                          align
-                          direction
-                          wrap
-                          reverse]
-
-  LayoutStrategy
-    (generate-layout-styles [{:keys [justify
-                                     align
-                                     direction
-                                     wrap
-                                     reverse]} _]
-
-      {:display         "flex"
-       :justify-content (name justify)
-       :align-items     (name align)
-       :flex-wrap       (name wrap)
-       :flex-direction  (if reverse
-                          (str (name direction) "-reverse")
-                          (name direction))}))
-
-
-
-
 (defrecord GridLayout [areas
                        rows
                        cols
@@ -151,16 +118,13 @@
                                      auto-sizes
                                      auto-flow]}
                              children]
-
-      (let [ grid-area-names (->> (flatten areas)
-                               (filter keyword?)
-                               (into #{}))
-             index-area-map-via-props (->> children
-                                        (map-indexed #(when-let [a (prop-get %2 :grid-area)] {%1 a}))
-                                        (into {}))
-             index-area-map-via-meta (->> children
-                                        (map-indexed #(when-let [a (get (meta %2) :grid-area)] {%1 a}))
-                                        (into {}))]
+      (let [index-area-map (->> children
+                             (map-indexed (fn [idx child]
+                                           [idx (or ;; prefer prop over meta..
+                                                 (prop-get  child   :grid-area)
+                                                 (get (meta child)  :grid-area))]))
+                             (remove (comp nil? second))
+                             (into {}))]
 
         (into {}
           (remove (comp nil? val)
@@ -172,43 +136,4 @@
                    (place-content->css place-content)
                    (auto-sizes->css auto-sizes)
                    (auto-flow->css auto-flow)
-                   (grid-children->css (merge
-                                         index-area-map-via-props
-                                         index-area-map-via-meta))))))))
-
-
-
-
-
-
-;; API
-
-(defn grid [& {:as options}]
-  (map->GridLayout (merge {:areas         []
-                           :gap           nil
-                           :place-items   [:stretch :stretch]
-                           :place-content [:stretch :stretch]
-                           :auto-sizes    []
-                           :rows          []
-                           :cols          []
-                           :auto-flow     :row}
-
-                          options)))
-
-
-(defn flex-box [& {:as options}]
-  (map->FlexBoxLayout (merge {:justify   :flex-start
-                              :align     :stretch
-                              :direction :row
-                              :wrap      :nowrap
-                              :reverse   false}
-
-                          options)))
-
-
-(defn h-box [& {:as options}]
-  (apply flex-box (flatten (into '() (merge options {:direction :row})))))
-
-
-(defn v-box [& {:as options}]
-  (apply flex-box (flatten (into '() (merge options {:direction :column})))))
+                   (grid-children->css index-area-map)))))))
