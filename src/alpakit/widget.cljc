@@ -9,6 +9,17 @@
                           collect-kv-args]]))
 
 
+(defn with-lifecycle-meta [lifecycle widget]
+  (if (empty? lifecycle)
+    widget
+    ;; otherwise merge lifecycle methods into metadata
+    (let [methods (->> {:component-did-update   (get lifecycle :update)
+                        :component-will-mount   (get lifecycle :mount)
+                        :component-will-unmount (get lifecycle :unmount)}
+                    (remove (comp nil? val))
+                    (into {}))]
+      (with-meta widget (merge methods (meta widget))))))
+
 
 (defn collect-kv-args-into-props [arg-list defaults]
   "collect-kv into a map with default values, useful for props+children"
@@ -32,9 +43,9 @@
 
 
 (defmacro widget [& spec]
-  (let [[docstring {:keys [props state]} body] (if (string? (first spec)) ;; docstring?
-                                                 (cons (first spec) (collect-kv-args (rest spec)))
-                                                 (cons "" (collect-kv-args spec)))]
+  (let [[docstring {:keys [props state lifecycle]} body] (if (string? (first spec)) ;; docstring?
+                                                           (cons (first spec) (collect-kv-args (rest spec)))
+                                                           (cons "" (collect-kv-args spec)))]
     (let [state-specs  (map-keys keyword state)
           prop-defaults (->> props
                           (filter #(contains? (val %) :default))
@@ -49,50 +60,51 @@
           no-props (empty? (keys props))
           only-body (and no-state no-props)]
 
-      (cond
-        only-body
-             (list 'fn ['& arg-list-sym]
-               docstring
-               ;; children
-               `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (collect-kv-args-into-props ~arg-list-sym {})]
-                  ~@body))
+        (with-lifecycle-meta lifecycle
+          (cond
+            only-body
+                 (list 'fn ['& arg-list-sym]
+                   docstring
+                   ;; children
+                   `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (collect-kv-args-into-props ~arg-list-sym {})]
+                      ~@body))
 
-        no-state
-             (list 'fn ['& arg-list-sym]
-               docstring
-               ;;  props & children
-               `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (collect-kv-args-into-props ~arg-list-sym
-                                                                                                ~prop-defaults)]
-                  ;; FIXME: fix in cljs  TODO make nice errors
-                  ;(doseq [[~(symbol "p") ~(symbol "spec-info")] ~prop-specs]
-                    ;(spec/assert ~(symbol "spec-info") ~(symbol "p"))
+            no-state
+                 (list 'fn ['& arg-list-sym]
+                   docstring
+                   ;;  props & children
+                   `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (collect-kv-args-into-props ~arg-list-sym
+                                                                                                    ~prop-defaults)]
+                      ;; FIXME: fix in cljs  TODO make nice errors
+                      ;(doseq [[~(symbol "p") ~(symbol "spec-info")] ~prop-specs]
+                        ;(spec/assert ~(symbol "spec-info") ~(symbol "p"))
 
-                  ~@body))
+                      ~@body))
 
-        no-props
-             (list 'fn ['& arg-list-sym]
-              docstring
-               ;; children
-               `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (collect-kv-args-into-props ~arg-list-sym {})]
-                  ;; FIXME: fix in cljs TODO make nice errors
-                  ;(doseq [[~(symbol "p") ~(symbol "spec-info")] ~prop-specs]
-                    ;(spec/assert ~(symbol "spec-info") ~(symbol "p"))
-                  ;; state
-                  (r/with-let [{:keys [~@(keys state)]} (map-vals r/atom ~state-specs)]
-                    ~@(deref-atom-access body (keys state)))))
+            no-props
+                 (list 'fn ['& arg-list-sym]
+                  docstring
+                   ;; children
+                   `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (collect-kv-args-into-props ~arg-list-sym {})]
+                      ;; FIXME: fix in cljs TODO make nice errors
+                      ;(doseq [[~(symbol "p") ~(symbol "spec-info")] ~prop-specs]
+                        ;(spec/assert ~(symbol "spec-info") ~(symbol "p"))
+                      ;; state
+                      (r/with-let [{:keys [~@(keys state)]} (map-vals r/atom ~state-specs)]
+                        ~@(deref-atom-access body (keys state)))))
 
-        :state+props
-             (list 'fn ['& arg-list-sym]
-               docstring
-                ;; props & children
-               `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (collect-kv-args-into-props ~arg-list-sym
-                                                                                                ~prop-defaults)]
-                  ;; FIXME: fix in cljs TODO make nice errors
-                  ;(doseq [[~(symbol "p") ~(symbol "spec-info")] ~prop-specs]
-                    ;(spec/assert ~(symbol "spec-info") ~(symbol "p"))
-                     ;; state
-                  (r/with-let [{:keys [~@(keys state)]} (map-vals r/atom ~state-specs)]
-                    ~@(deref-atom-access body (keys state)))))))))
+            :state+props
+                 (list 'fn ['& arg-list-sym]
+                   docstring
+                    ;; props & children
+                   `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (collect-kv-args-into-props ~arg-list-sym
+                                                                                                    ~prop-defaults)]
+                      ;; FIXME: fix in cljs TODO make nice errors
+                      ;(doseq [[~(symbol "p") ~(symbol "spec-info")] ~prop-specs]
+                        ;(spec/assert ~(symbol "spec-info") ~(symbol "p"))
+                         ;; state
+                      (r/with-let [{:keys [~@(keys state)]} (map-vals r/atom ~state-specs)]
+                        ~@(deref-atom-access body (keys state))))))))))
 
 
 (defmacro defwidget [name & spec]
