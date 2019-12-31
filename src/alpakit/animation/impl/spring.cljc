@@ -1,8 +1,11 @@
 (ns alpakit.animation.impl.spring
   (:require
-   [reagent.core :as r]
+    #?(:cljs [reagent.core :as r :refer [atom cursor next-tick]])
    [alpakit.animation.impl.transitionable :refer [->Transitionable]]))
 
+
+#?(:clj (def cursor #()))
+#?(:clj (def next-tick #()))
 
 ;; most of the spring stuff was taken from:
 ;; https://github.com/timothypratley/reanimated
@@ -56,17 +59,17 @@
                       initial-velocity  0.0
                       initial-value     0}}]
 
-  (let [control (r/atom {:to        to
-                         :mass      mass
-                         :stiffness stiffness
-                         :damping   damping})
+  (let [control (atom {:to        to
+                       :mass      mass
+                       :stiffness stiffness
+                       :damping   damping})
 
-         x2                  (r/cursor control [:to])
-         last                (atom initial-value)
-         x2prev              (atom to)
-         internal-anim-state (r/atom {:t (now)
-                                      :x initial-value
-                                      :v initial-velocity})
+         x2                  (cursor control [:to])
+         last                (clojure.core/atom initial-value)
+         x2prev              (clojure.core/atom to)
+         internal-anim-state (atom {:t (now)
+                                    :x initial-value
+                                    :v initial-velocity})
         next-step! (fn []
                     (when (not= @x2 @x2prev)
                       (reset! last @x2prev)
@@ -88,11 +91,11 @@
 
                         ;; otherwise do next step
                         (let [[x v] (rk4 @x2 dt x v mass stiffness damping)]
-                          (r/next-tick #(reset! internal-anim-state {:t t2 :x x :v v}))
+                          (next-tick #(reset! internal-anim-state {:t t2 :x x :v v}))
                           x))))]
 
     (->Transitionable
-       (r/cursor #(next-step!) [])
+       (cursor #(next-step!) [])
        x2
        control
        {}
