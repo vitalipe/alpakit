@@ -20,13 +20,13 @@
                          :cols ["40px" "1fr" "1fr"]
                          :rows ["60px" "40px"])
 
-   ^{:grid-area :A}
+   ^{:key :A}
    [box "#0086b3" "A"]
 
-   ^{:grid-area :B}
+   ^{:key :B}
    [box "gold" "B"]
 
-   ^{:grid-area :C}
+   ^{:key :C}
    [box "pink" "C"]])
 
 (defcard-rg simple-inline-grid-layout
@@ -44,13 +44,13 @@
                                   [:B    :B    :C] "40px"])
 
 
-    ^{:grid-area :A}
+    ^{:key :A}
     [box "#0086b3" "A"]
 
-    ^{:grid-area :B}
+    ^{:key :B}
     [box "gold" "B"]
 
-    ^{:grid-area :C}
+    ^{:key :C}
     [box "pink" "C"]])
 
 
@@ -71,16 +71,16 @@
                                  [:menu    :content  :content] "200px"
                                  [:footer  :footer   :footer ] "40px"])
 
-   ^{:grid-area :header}
+   ^{:key :header}
     [box "#0086b3" "header"]
 
-    ^{:grid-area :content}
+    ^{:key :content}
     [box "gold" "content"]
 
-    ^{:grid-area :menu}
+    ^{:key :menu}
     [box "pink" "menu"]
 
-    ^{:grid-area :footer}
+    ^{:key :footer}
     [box "brown" "footer"]])
 
 
@@ -103,16 +103,16 @@
                                  [nil        nil     :content] "200px"
                                  [nil      :footer     nil   ] "40px"])
 
-   ^{:grid-area :header}
+   ^{:key :header}
     [box "#0086b3" "header"]
 
-    ^{:grid-area :content}
+    ^{:key :content}
     [box "gold" "content"]
 
-    ^{:grid-area :menu}
+    ^{:key :menu}
     [box "pink" "menu"]
 
-    ^{:grid-area :footer}
+    ^{:key :footer}
     [box "brown" "footer"]])
 
 
@@ -129,19 +129,19 @@
                                   [:c0      :c1        :c2    ] "200px"
                                   [:footer  :footer   :footer ] "40px"])
 
-   ^{:grid-area :header}
+   ^{:key :header}
     [box "#0086b3" "header"]
 
-    ^{:grid-area :c0}
+    ^{:key :c0}
     [box "gold" "C0"]
 
-    ^{:grid-area :c1}
+    ^{:key :c1}
     [box "pink" "C1"]
 
-    ^{:grid-area :c2}
+    ^{:key :c2}
     [box "pink" "C2"]
 
-    ^{:grid-area :footer}
+    ^{:key :footer}
     [box "brown" "footer"]])
 
 (defcard-rg layout-with-autoflow
@@ -167,7 +167,7 @@
                                  [:A        :B         :C ] "40px"
                                  [:D        :E         :F ] "60px"])
 
-   ^{:grid-area :B}
+   ^{:key :B}
     [box "#0086b3"    "B"]
 
     [box "gold"    "A (child 1 auto fill)"]

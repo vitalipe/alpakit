@@ -4,7 +4,7 @@
     [garden.selectors :as selectors]
     [garden.units     :as units]
 
-    [alpakit.util :refer [prop-get map-kv]]
+    [alpakit.util :refer [key-get map-kv]]
     [alpakit.layout.protocol :refer [LayoutStrategy]]))
 
 
@@ -120,9 +120,7 @@
                              children]
       (let [index-area-map (->> children
                              (map-indexed (fn [idx child]
-                                           [idx (or ;; prefer prop over meta..
-                                                 (prop-get  child   :grid-area)
-                                                 (get (meta child)  :grid-area))]))
+                                           [idx (key-get child)]))
                              (remove (comp nil? second))
                              (into {}))]
 

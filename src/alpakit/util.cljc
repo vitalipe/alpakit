@@ -50,3 +50,8 @@
     (map? (first ?props)) (get (first ?props) key)
     (keyword?  element)    nil
     :otherwise             (get-in (collect-kv-args ?props) [0 key])))
+
+(defn key-get [e]
+  (or ;; prefer prop over meta..
+        (prop-get  e   :key) ;; FIXME: this is not fast!
+        (get (meta e)  :key)))
