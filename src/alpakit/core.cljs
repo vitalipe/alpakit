@@ -4,9 +4,10 @@
     [clojure.string :as string]
 
     [reagent.core :as r]
+    [garden.core :as garden]
 
     [alpakit.widget :refer-macros [defwidget]]
-    [alpakit.css    :as css :refer [transform->css-str]]
+    [alpakit.css    :as css :refer [transform->css-str style-sheet]]
     [alpakit.layout :as layout]
     [alpakit.layout.protocol :refer [generate-layout-styles]]
 
@@ -58,3 +59,28 @@
                       -attr)]
 
       (into [e props] children)))
+
+
+(defwidget app
+  "top level app container"
+
+  :props {theme {:default {}}}
+  :state {uuid  (random-uuid)}
+
+  (into
+    [:div {:class (str "alpakit-app-" uuid)}
+     [:style.app-theme
+      (garden/css theme)]
+     [style-sheet]]
+   children))
+
+
+(defn render!
+  ([app-node] (render! app-node "body"))
+  ([app-node parent-selector]
+   (let [root (.querySelector js/document parent-selector)]
+     (if-not (= root (.-body js/document))
+       (r/render [app] root)
+       (let [root (.createElement js/document "div")]
+         (.appendChild (.-body js/document) root)
+         (r/render [app] root))))))

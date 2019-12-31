@@ -3,7 +3,7 @@
     [reagent.core :as r]
     [devcards.core]
 
-    [alpakit.css :refer [style-sheet]]
+    [alpakit.core :refer [app render!]]
 
     ;; cards
     [cards.animation.spring]
@@ -11,7 +11,5 @@
 
 (enable-console-print!)
 
-;; setup css
-(let [root (.createElement js/document "div")]
-  (.appendChild (.-body js/document) root)
-  (r/render [style-sheet] root))
+;; setup
+(render! [app :theme {}])
