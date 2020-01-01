@@ -7,7 +7,7 @@
     [alpakit.core   :refer [surface element]]
     [alpakit.layout :as layout :refer [v-box]]
     [alpakit.animation :refer [spring+control] :as animation]
-    [alpakit.animation.macros    :refer-macros [+>]]))
+    [alpakit.animation.macros    :refer-macros [tr>]]))
 
 
 
@@ -32,10 +32,10 @@
 
 (defcard-rg springy-menu
   (let [[s cfg] (spring+control :from 0 :to 0 :stiffness 0.8 :damping 1 :mass 10)
-        s*100px  (+> s (map (partial *  100))  (map #(str % "px")))
-        s*-100px (+> s (map (partial *  -100)) (map #(str % "px")))
-        s*30deg  (+> s (map (partial *   30)) (map #(str % "deg")))
-        s*90-90deg  (+> s
+        s*100px  (tr> s (map (partial *  100))  (map #(str % "px")))
+        s*-100px (tr> s (map (partial *  -100)) (map #(str % "px")))
+        s*30deg  (tr> s (map (partial *   30)) (map #(str % "deg")))
+        s*90-90deg  (tr> s
                       (map (partial * 90))
                       (map (partial - 90))
                       (map #(str % "deg")))]

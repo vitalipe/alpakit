@@ -4,7 +4,7 @@
 
 
 
-(defmacro +> [transitionable & forms]
+(defmacro tr> [transitionable & forms]
   "create a treansducer from (comp forms) and return a new transitionable,
    with the transducer applied. it sets the hash from `forms` together with
    the source transitionable"
