@@ -6,27 +6,25 @@
 
     [alpakit.core   :refer [surface element]]
     [alpakit.layout :as layout :refer [v-box]]
-    [alpakit.animation :refer [spring+control] :as animation]
+    [alpakit.animation :refer [spring+control spring] :as animation]
     [alpakit.animation.macros    :refer-macros [tr>]]))
 
 
 
 (defcard-rg image-zoom
   "http://facebook.github.io/rebound-js/examples/"
-  (let [[s cfg] (spring+control :to 1 :damping 2)]
-    (fn []
-        [surface :layout (layout/h-box :justify :space-around)
-                 :-attr {:on-mouse-down #(swap! cfg assoc :to 0.5)
-                         :on-mouse-up   #(swap! cfg assoc :to 1)
-                         :on-mouse-out   #(swap! cfg assoc :to 1)}
+  (r/with-let [s (spring :to 1 :damping 2)]
+    [surface :layout (layout/h-box :justify :space-around)
+             :-attr {:on-mouse-down #(reset! s 0.5)
+                     :on-mouse-up   #(reset! s 1)}
 
-         [element
-          :e :img
-          :-attr {:src "http://facebook.github.io/rebound-js/examples/photoScale/landscape.jpg"
-                  :draggable false}
-          :css {:transform {:scale-x s
-                            :scale-y s}
-                :user-select "none"}]])))
+     [element
+      :e :img
+      :-attr {:src "http://facebook.github.io/rebound-js/examples/photoScale/landscape.jpg"
+              :draggable false}
+      :css {:transform {:scale-x s
+                        :scale-y s}
+            :user-select "none"}]]))
 
 
 
