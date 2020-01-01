@@ -90,7 +90,8 @@
                       ;(doseq [[~(symbol "p") ~(symbol "spec-info")] ~prop-specs]
                         ;(spec/assert ~(symbol "spec-info") ~(symbol "p"))
                       ;; state
-                      (r/with-let [{:keys [~@(keys state)]} (map-vals r/atom ~state-specs)]
+                      (r/with-let [{:keys [~@(keys state)]} (map-vals r/atom ~state-specs)
+                                   ~@(mapcat #(vector (symbol (str "!" %)) %) (keys state))]
                         ~@(deref-atom-access body (keys state)))))
 
             :state+props
@@ -103,7 +104,8 @@
                       ;(doseq [[~(symbol "p") ~(symbol "spec-info")] ~prop-specs]
                         ;(spec/assert ~(symbol "spec-info") ~(symbol "p"))
                          ;; state
-                      (r/with-let [{:keys [~@(keys state)]} (map-vals r/atom ~state-specs)]
+                      (r/with-let [{:keys [~@(keys state)]} (map-vals r/atom ~state-specs)
+                                   ~@(mapcat #(vector (symbol (str "!" %)) %) (keys state))]
                         ~@(deref-atom-access body (keys state))))))))))
 
 
