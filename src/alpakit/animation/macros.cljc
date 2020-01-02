@@ -43,10 +43,9 @@
                    (reagent.core/cursor #() []) ;; no swaps allowed!!
                    (.-control ~t-sym)
                    {}
-                   ;; using forms + transitionable as a hash will
-                   ;; almost always ensure that:
-                   ;;      (= (|> a-spring (map inc) (filter odd?))
-                   ;;         (|> a-spring (map inc) (filter odd?)))
+                   ;; using forms + transitionable as a hash will always ensure that:
+                   ;;      (= (tr> a-spring (map inc) (filter odd?))
+                   ;;         (tr> a-spring (map inc) (filter odd?)))
                    (hash [(hash ~t-sym) ~forms-hash])))]
 
               ;; cache and return

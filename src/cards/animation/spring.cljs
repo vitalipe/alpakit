@@ -29,15 +29,15 @@
 
 
 (defcard-rg springy-menu
-  (let [[s cfg] (spring+control :from 0 :to 0 :stiffness 0.8 :damping 1 :mass 10)
-        s*100px  (tr> s (map (partial *  100))  (map #(str % "px")))
-        s*-100px (tr> s (map (partial *  -100)) (map #(str % "px")))
-        s*30deg  (tr> s (map (partial *   30)) (map #(str % "deg")))
-        s*90-90deg  (tr> s
-                      (map (partial * 90))
-                      (map (partial - 90))
-                      (map #(str % "deg")))]
-    (fn []
+  (r/with-let [[s cfg] (spring+control :from 0 :to 0 :stiffness 0.8 :damping 1 :mass 10)
+               s*100px  (tr> s (map (partial *  100))  (map #(str % "px")))
+               s*-100px (tr> s (map (partial *  -100)) (map #(str % "px")))
+               s*30deg  (tr> s (map (partial *   30)) (map #(str % "deg")))
+               s*90-90deg  (tr> s
+                             (map (partial * 90))
+                             (map (partial - 90))
+                             (map #(str % "deg")))]
+
       [surface :layout (layout/h-box :justify :space-around)
                :style {:height "200px"}
 
@@ -107,17 +107,11 @@
                        :z-index 2}
                  :transform {:rotate-z s*30deg}
 
-            [element :style {:opacity (- 1 (:to @cfg))
+            [element :style {:opacity (- 1 @s)
                              :transition-property "opacity"
                              :transition-duration "100ms"
                              :position "relative"}
-             "OPEN"]
-
-            [element :style {:opacity (:to @cfg)
-                             :transition-property "opacity"
-                             :transition-duration "100ms"
-                             :position "absolute"}
-             "CLOSE"]]]])))
+             "toggle"]]]]))
 
 
 (defcard-rg springy-double-box
