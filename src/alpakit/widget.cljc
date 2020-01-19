@@ -9,18 +9,6 @@
                           collect-kv-args]]))
 
 
-(defn with-lifecycle-meta [lifecycle widget]
-  (if (empty? lifecycle)
-    widget
-    ;; otherwise merge lifecycle methods into metadata
-    (let [methods (->> {:component-did-update   (get lifecycle :update)
-                        :component-will-mount   (get lifecycle :mount)
-                        :component-will-unmount (get lifecycle :unmount)}
-                    (remove (comp nil? val))
-                    (into {}))]
-      (with-meta widget (merge methods (meta widget))))))
-
-
 (defn collect-kv-args-into-props [arg-list defaults]
   "collect-kv into a map with default values, useful for props+children"
   (let [[props children] (collect-kv-args arg-list)]
@@ -40,6 +28,26 @@
             (atom-operation? form)  (let [[f [_ a] & args] form] (concat (list f a) args))
             :otherwise              form))
         body)))
+
+
+(defn with-lifecycle-meta [lifecycle widget]
+  (if (empty? lifecycle)
+    widget
+    ;; otherwise merge lifecycle methods into metadata
+    (let [with-clj-props (fn [?update-fn]
+                           (when ?update-fn
+                              (let [props-path '(.. this -props -argv)]
+                                `(fn [~(symbol "this")]
+                                   (~?update-fn
+                                     (collect-kv-args-into-props
+                                      (rest ~props-path)
+                                      {}))))))
+          methods (->> {:component-did-update   (with-clj-props (get lifecycle :update))
+                        :component-will-mount   (get lifecycle :mount)
+                        :component-will-unmount (get lifecycle :unmount)}
+                    (remove (comp nil? val))
+                    (into {}))]
+      (with-meta widget (merge methods (meta widget))))))
 
 
 (defmacro widget [& spec]
