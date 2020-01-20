@@ -4,7 +4,8 @@
     [garden.selectors :as selectors]
     [garden.units     :as units]
 
-    [alpakit.util :refer [key-get map-kv]]
+    [alpakit.util  :refer [map-kv]]
+    [alpakit.props :refer [get-key]]
     [alpakit.layout.protocol :refer [LayoutStrategy]]))
 
 
@@ -120,7 +121,7 @@
                              children]
       (let [index-area-map (->> children
                              (map-indexed (fn [idx child]
-                                           [idx (key-get child)]))
+                                           [idx (get-key child)]))
                              (remove (comp nil? second))
                              (into {}))]
 

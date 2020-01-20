@@ -3,16 +3,10 @@
     #?(:cljs [cljs.spec.alpha :as spec])
     #?(:clj  [clojure.spec.alpha :as spec])
     [reagent.core :as r]
+    [alpakit.props :refer [collect-kv-args args->props]]
     [alpakit.util :refer [map-kv
                           map-vals
-                          map-keys
-                          collect-kv-args]]))
-
-
-(defn collect-kv-args-into-props [arg-list defaults]
-  "collect-kv into a map with default values, useful for props+children"
-  (let [[props children] (collect-kv-args arg-list)]
-    (merge defaults props {:children (apply list children)})))
+                          map-keys]]))
 
 
 (defn deref-atom-access [body symbols]
@@ -39,9 +33,8 @@
                               (let [props-path '(.. this -props -argv)]
                                 `(fn [~(symbol "this")]
                                    (~?update-fn
-                                     (collect-kv-args-into-props
-                                      (rest ~props-path)
-                                      {}))))))
+                                     (args->props
+                                      (rest ~props-path)))))))
           methods (->> {:component-did-update   (with-clj-props (get lifecycle :update))
                         :component-will-mount   (get lifecycle :mount)
                         :component-will-unmount (get lifecycle :unmount)}
@@ -74,15 +67,15 @@
                  (list 'fn ['& arg-list-sym]
                    docstring
                    ;; children
-                   `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (collect-kv-args-into-props ~arg-list-sym {})]
+                   `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (args->props ~arg-list-sym)]
                       ~@body))
 
             no-state
                  (list 'fn ['& arg-list-sym]
                    docstring
                    ;;  props & children
-                   `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (collect-kv-args-into-props ~arg-list-sym
-                                                                                                    ~prop-defaults)]
+                   `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (args->props ~arg-list-sym
+                                                                                     ~prop-defaults)]
                       ;; FIXME: fix in cljs  TODO make nice errors
                       ;(doseq [[~(symbol "p") ~(symbol "spec-info")] ~prop-specs]
                         ;(spec/assert ~(symbol "spec-info") ~(symbol "p"))
@@ -93,7 +86,7 @@
                  (list 'fn ['& arg-list-sym]
                   docstring
                    ;; children
-                   `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (collect-kv-args-into-props ~arg-list-sym {})]
+                   `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (args->props ~arg-list-sym)]
                       ;; FIXME: fix in cljs TODO make nice errors
                       ;(doseq [[~(symbol "p") ~(symbol "spec-info")] ~prop-specs]
                         ;(spec/assert ~(symbol "spec-info") ~(symbol "p"))
@@ -106,8 +99,8 @@
                  (list 'fn ['& arg-list-sym]
                    docstring
                     ;; props & children
-                   `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (collect-kv-args-into-props ~arg-list-sym
-                                                                                                    ~prop-defaults)]
+                   `(let [{:keys [~@prop-names] :as ~(symbol "-props")} (args->props ~arg-list-sym
+                                                                                     ~prop-defaults)]
                       ;; FIXME: fix in cljs TODO make nice errors
                       ;(doseq [[~(symbol "p") ~(symbol "spec-info")] ~prop-specs]
                         ;(spec/assert ~(symbol "spec-info") ~(symbol "p"))
