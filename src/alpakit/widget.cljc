@@ -3,7 +3,7 @@
     #?(:cljs [cljs.spec.alpha :as spec])
     #?(:clj  [clojure.spec.alpha :as spec])
     [reagent.core :as r]
-    [alpakit.props :refer [collect-kv-args args->props]]
+    [alpakit.props :refer [normalize-args args->props]]
     [alpakit.util :refer [map-kv
                           map-vals
                           map-keys]]))
@@ -45,8 +45,8 @@
 
 (defmacro widget [& spec]
   (let [[docstring {:keys [props state lifecycle]} body] (if (string? (first spec)) ;; docstring?
-                                                           (cons (first spec) (collect-kv-args (rest spec)))
-                                                           (cons "" (collect-kv-args spec)))]
+                                                           (cons (first spec) (normalize-args (rest spec)))
+                                                           (cons "" (normalize-args spec)))]
     (let [state-specs  (map-keys keyword state)
           prop-defaults (->> props
                           (filter #(contains? (val %) :default))

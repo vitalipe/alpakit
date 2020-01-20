@@ -1,34 +1,49 @@
 (ns alpakit.props)
 
 
-(defn collect-kv-args [arg-list]
+(defn normalize-kv-args [arg-list]
   "takes a seq of keyword args followed by n positional args
-   and returns a map and a vector (for positional args).
-
+   and returns a map and a list of positional args.
      for example:
-
-        [:x 42 :y false 1 2 3 4 5] => [{:x 42 :y false} [1 2 3 4 5]]
-        [1 2 3 4 5]                => [{} [1 2 3 4 5]]
-        [:x 42 :y false]           => [{:x 42 :y false} []]
+        [:x 42 :y false 1 2 3 4 5] => [{:x 42 :y false} (1 2 3 4 5)]
+        [1 2 3 4 5]                => [{} (1 2 3 4 5)]
+        [:x 42 :y false]           => [{:x 42 :y false} ()]
 "
   (let [rest-index (loop [[arg & other] arg-list index 0]
                       (cond
                         (keyword? arg) (recur (rest other) (+ 2 index))
                         :otherwise     index))
-        kv-args   (apply hash-map (subvec (into [] arg-list) 0 rest-index))
-        rest-list (subvec (into [] arg-list) rest-index (count arg-list))]
+        kv-args   (apply hash-map (take rest-index arg-list))
+        rest-list (drop rest-index arg-list)]
 
       [kv-args rest-list]))
 
 
+(defn normalize-args [[first-arg & _ :as body]]
+  "takes a hiccup body OR a seq of keyword args followed by n positional args
+   and returns a map and a list of positional args.
+
+     for example:
+        [{:x 42 :y false} 1 2 3 4 5] => [{:x 42 :y false} (1 2 3 4 5)]
+        [:x 42 :y false 1 2 3 4 5]   => [{:x 42 :y false} (1 2 3 4 5)]
+
+        [1 2 3 4 5]                  => [{} (1 2 3 4 5)]
+
+        [{:x 42 :y false}]           => [{:x 42 :y false} ()]
+        [:x 42 :y false]             => [{:x 42 :y false} ()]
+"
+  (cond
+    (map? first-arg)            (into [] body)
+    (not (keyword? first-arg))  [{} body]
+    :otherwise                  (normalize-kv-args body)))
+
+
 (defn get-prop
   ([e key] (get-prop e key nil))
-  ([[element & ?props] key default]
-   (cond
-     (map? (first ?props)) (get (first ?props) key default)
-     (keyword?  element)   default
-     ;; FIXME: this is not fast!
-     :otherwise             (get-in (collect-kv-args ?props) [0 key] default))))
+  ([[_ & body] key default]
+   ;; FIXME: this is not fast!
+   (let [[props _] (normalize-args body)]
+     (get props key default))))
 
 
 (defn get-key [e]
@@ -41,5 +56,5 @@
   "collect kv or hiccup into a map with default values, useful for props+children"
   ([argv] (args->props argv {}))
   ([argv defaults]
-   (let [[props children] (collect-kv-args argv)]
-     (merge defaults props {:children (apply list children)}))))
+   (let [[props children] (normalize-args argv)]
+     (merge defaults props {:children children}))))
