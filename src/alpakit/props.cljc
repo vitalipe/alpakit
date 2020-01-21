@@ -19,7 +19,7 @@
       [kv-args rest-list]))
 
 
-(defn normalize-args [[first-arg & _ :as body]]
+(defn normalize-args [[first-arg & rest-args :as body]]
   "takes a hiccup body OR a seq of keyword args followed by n positional args
    and returns a map and a list of positional args.
 
@@ -33,7 +33,7 @@
         [:x 42 :y false]             => [{:x 42 :y false} ()]
 "
   (cond
-    (map? first-arg)            (into [] body)
+    (map? first-arg)            [first-arg rest-args]
     (not (keyword? first-arg))  [{} body]
     :otherwise                  (normalize-kv-args body)))
 
