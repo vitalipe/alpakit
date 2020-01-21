@@ -76,11 +76,11 @@
 
 
 (defn render!
-  ([app-node] (render! app-node "body"))
-  ([app-node parent-selector]
+  ([app] (render! app "body"))
+  ([app parent-selector]
    (let [root (.querySelector js/document parent-selector)]
      (if-not (= root (.-body js/document))
-       (r/render [app] root)
+       (r/render app root)
        (let [root (.createElement js/document "div")]
          (.appendChild (.-body js/document) root)
-         (r/render [app] root))))))
+         (r/render app root))))))
