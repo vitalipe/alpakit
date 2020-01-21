@@ -43,10 +43,44 @@
       (with-meta widget (merge methods (meta widget))))))
 
 
+(defn vec->hmap-props [args]
+  (let [i-of-or (loop [i 0 [a & args] args]
+                  (cond
+                    (= a :or)     (inc i)
+                    (empty? args) -1
+                    :otherwise    (recur (inc i) args)))
+
+        n-args   (if (pos? i-of-or) (dec i-of-or) (count args))
+        defaults (map-vals #(hash-map :default %) (nth args i-of-or {}))
+
+        props (->> args
+                (take n-args)
+                (map #(vector % {}))
+                (into {}))]
+    (merge
+      props
+      (select-keys
+        defaults
+        (keys props)))))
+
+
+(defn normalize-spec [[?doc & spec]]
+  (let [[doc ?props spec] (if (string? ?doc)
+                            [?doc (first spec) (rest spec)]
+                            ["" ?doc spec])]
+
+    (let [[spec body] (if (vector? ?props)
+                        ;; props are in this form -> [p1 p2 :or {p1 42}]
+                        (let [[kv-spec body] (normalize-args spec)
+                              vec-spec {:props (vec->hmap-props ?props)}]
+                          [(merge kv-spec vec-spec)  body])
+                        ;; props are in this form -> :props {p1 {:default 42} p2 {}}
+                        (normalize-args (cons ?props spec)))]
+      [doc spec body])))
+
+
 (defmacro widget [& spec]
-  (let [[docstring {:keys [props state lifecycle]} body] (if (string? (first spec)) ;; docstring?
-                                                           (cons (first spec) (normalize-args (rest spec)))
-                                                           (cons "" (normalize-args spec)))]
+  (let [[docstring {:keys [props state lifecycle]} body] (normalize-spec spec)]
     (let [state-specs  (map-keys keyword state)
           prop-defaults (->> props
                           (filter #(contains? (val %) :default))
@@ -111,4 +145,7 @@
 
 
 (defmacro defwidget [name & spec]
+  `(def ~(symbol name) (widget ~@spec)))
+
+(defmacro defw [name & spec]
   `(def ~(symbol name) (widget ~@spec)))
