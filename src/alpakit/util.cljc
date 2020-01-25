@@ -1,6 +1,16 @@
 (ns alpakit.util)
 
 
+(defn deep-merge [& maps]
+  "recursively merge maps, useful for config etc..
+   note: that nil will override values (same as merge)"
+  (apply merge-with
+         #(cond
+             (every? map? %&) (apply deep-merge %&)
+             :otherwise       (last %&))
+     maps))
+
+
 (defn map-kv [k-fn v-fn a-map]
   "map over a seq of [k v] pairs, returns a map"
   (->> a-map
